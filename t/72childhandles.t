@@ -23,7 +23,7 @@ if (!$HAS_WEAKEN) {
     exit 0;
 }
 
-plan tests => 16;
+plan tests => 18;
 
 my $using_dbd_gofer = ($ENV{DBI_AUTOPROXY}||'') =~ /^dbi:Gofer.*transport=/i;
 
@@ -131,6 +131,20 @@ is scalar @live, 0, "handles should be gone now";
         'st' => { 'SELECT name FROM t' => 2 }
     };
 
+}
+
+# test visit_child_handles without 2nd argument
+{
+    my $info;
+    my $visitor = sub {
+        my ($h, $info) = @_;
+        my $type = $h->{Type};
+        ++$info->{ $type }{ ($type eq 'st') ? $h->{Statement} : $h->{Name} };
+        return $info;
+    };
+    my $rv = DBI->visit_handles($visitor);
+    ok(defined $rv, 'visit_handles(), called without second argument, returned defined value');
+    is(ref $rv, 'HASH', 'visit_handles returned hashref');
 }
 
 # test that the childhandle array does not grow uncontrollably
